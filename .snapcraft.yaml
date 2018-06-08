@@ -8,7 +8,7 @@ grade: stable
 
 apps:
   marketo-monkey:
-    command: usr/bin/python3 -u $SNAP/bin/marketo-monkey.py
+    command: usr/bin/python3 -u -m marketo_monkey
     plugs: [network-bind, network]
 
 parts:
