@@ -1,15 +1,13 @@
+import urllib
+import yaml
+
+import requests
+
 
 name = 'marketo_monkey'
 __all__ = [
     'MarketoMonkey',
 ]
-
-
-import urllib
-import yaml
-
-
-import requests
 
 
 class MarketoMonkey():
@@ -23,7 +21,7 @@ class MarketoMonkey():
         self._access_token = None
 
     @classmethod
-    def config_from_yaml_file(klass, path):
+    def config_from_yaml_file(cls, path):
         with open(path) as fd:
             return yaml.safe_load(fd)
 

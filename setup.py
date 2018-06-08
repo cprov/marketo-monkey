@@ -9,7 +9,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name='marketo-monkey',
-    version='0.1',
+    version='0.2',
     author='Celso Providelo',
     author_email='celso.providelo@canonical.com',
     url="https://github.com/cprov/marketo-monkey",
@@ -17,7 +17,6 @@ setuptools.setup(
     description='CLI tool to facilitate Marketo integration',
     long_description=long_description,
     long_description_content_type="text/markdown",
-    packages=setuptools.find_packages(),
     classifiers=(
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
@@ -29,4 +28,6 @@ setuptools.setup(
         "requests",
     ],
     test_suite='tests',
+    scripts=['marketo-monkey.py'],
+    packages=setuptools.find_packages(),
 )
