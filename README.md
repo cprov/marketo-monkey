@@ -1,4 +1,4 @@
-# marketo-monkey
+# marketo-monkey [![Snap Status](https://build.snapcraft.io/badge/cprov/marketo-monkey.svg)](https://build.snapcraft.io/user/cprov/marketo-monkey)
 
 CLI tool to facilitate Marketo integration.
 
