@@ -1,0 +1,23 @@
+name: marketo-monkey
+version: 0.1
+summary: CLI tool to facilitate Marketo integration
+description: |
+  CLI tool to facilitate Marketo integration
+confinement: strict
+grade: stable
+
+apps:
+  marketo-monkey:
+    command: usr/bin/python3 -u $SNAP/bin/marketo-monkey.py
+    plugs: [network-bind, network]
+
+parts:
+  marketo-monkey:
+    plugin: python
+    source: .
+    python-packages:
+      - python-editor
+      - PyYAML
+      - requests
+    prime:
+      - -install
