@@ -19,13 +19,38 @@ Use `snap`:
 
 ## Usage
 
+```
+$ marketo-monkey lead
+'Lead' object available fields:
+    firstName, lastName, email, company
 
-    $ marketo-monkey -v
-    2018-06-08 14:21:10,846 DEBUG Added a stderr logging handler to logger: urllib3
-    Starting new HTTPS connection (1): <REDACTED>.mktorest.com
-    https://<REDACTED>.mktorest.com:443 "GET /identity/oauth/token?client_id=<REDACTED>&grant_type=client_credentials&client_secret=<REDACTED> HTTP/1.1" 200 None
-    Starting new HTTPS connection (1): <REDACTED>.mktorest.com
-    https://<REDACTED>.mktorest.com:443 "GET /rest/v1/customobjects/snap_c/describe.json?access_token=<REDACTED> HTTP/1.1" 200 None
-    {'requestId': '1477e#163dfc5d0b6',
-     'result': [{'createdAt': '2018-06-06T13:24:08Z',
-    ...
+$ marketo-monkey lead email=foo.bar@example.com
+Lead object updated!
+{'createdAt': '2018-06-08T12:19:00Z',
+ 'email': 'foo.bar@example.com',
+ 'firstName': 'Foo',
+ 'id': 33374563,
+ 'lastName': 'Bar',
+ 'updatedAt': '2018-06-08T17:57:07Z'}
+
+$ marketo-monkey snap
+'Snap' object available fields:
+    createdAt, marketoGUID, updatedAt, Confinement, channel, emailAddress, revision, snapName
+
+$ marketo-monkey snap emailAddress=foo.bar@example.com,snapNamexx=testing-snap5
+Failed to create or modify snap!
+    Field 'snapNamexx' not found
+    Value for requried field 'snapname' not specified
+
+$ marketo-monkey snap emailAddress=foo.bar@example.com,snapName=testing-snap5
+Snap object created!
+{'Confinement': None,
+ 'channel': None,
+ 'createdAt': '2018-06-08T18:34:21Z',
+ 'emailAddress': 'foo.bar@example.com',
+ 'marketoGUID': 'e1361ee9-7f9e-4a2c-acb4-b7e988ac8c55',
+ 'revision': None,
+ 'seq': 0,
+ 'snapName': 'testing-snap5',
+ 'updatedAt': '2018-06-08T18:34:21Z'}
+```

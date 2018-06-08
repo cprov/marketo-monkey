@@ -4,6 +4,7 @@ import argparse
 import logging
 import os
 import pprint
+import sys
 import time
 import urllib
 import yaml
@@ -20,7 +21,7 @@ class MarketoMonkey():
 
     def __init__(self, config):
         self._config = config
-        self._access_token = self._get_access_token()
+        self._access_token = None
 
     @classmethod
     def config_from_yaml_file(klass, path):
@@ -28,20 +29,22 @@ class MarketoMonkey():
             return yaml.safe_load(fd)
 
     def _get_access_token(self):
-        url = urllib.parse.urljoin(
-            self._config['service_root'], '/identity/oauth/token')
-        params = {
-            'grant_type': 'client_credentials',
-            'client_id': self._config['client_id'],
-            'client_secret': self._config['client_secret'],
-        }
-        url += '?' + urllib.parse.urlencode(params)
-        return requests.get(url).json()['access_token']
+        if self._access_token is None:
+            url = urllib.parse.urljoin(
+                self._config['service_root'], '/identity/oauth/token')
+            params = {
+                'grant_type': 'client_credentials',
+                'client_id': self._config['client_id'],
+                'client_secret': self._config['client_secret'],
+            }
+            url += '?' + urllib.parse.urlencode(params)
+            self._access_token = requests.get(url).json()['access_token']
+        return self._access_token
 
     def _prepare_url(self, path, **extra_params):
         url = urllib.parse.urljoin(self._config['service_root'], path)
         params = {
-            'access_token': self._access_token,
+            'access_token': self._get_access_token(),
         }
         if extra_params:
             params.update(extra_params)
@@ -57,7 +60,7 @@ class MarketoMonkey():
             '/rest/v1/customobjects/{}/describe.json'.format(name))
         return requests.get(url).json()
 
-    def create_lead(self, **kwargs):
+    def set_lead(self, **kwargs):
         lead = kwargs.copy()
         overrides = {
             'snapcraftio': True,
@@ -72,22 +75,29 @@ class MarketoMonkey():
         url = self._prepare_url('/rest/v1/lead/{}.json'.format(lead_id))
         return requests.get(url).json()
 
-    def create_or_update_snap(self, **kwargs):
+    def describe_lead(self):
+        url = self._prepare_url('/rest/v1/leads/describe.json')
+        return requests.get(url).json()
+
+    def set_snap(self, **kwargs):
         snap = kwargs.copy()
         url = self._prepare_url('/rest/v1/customobjects/snap_c.json')
         payload = {'input': [snap]}
         return requests.post(url, json=payload, headers=self.HEADERS).json()
 
-    def get_snap(self, marketo_snap_id):
+    def get_snap(self, marketoGUID):
         extra_params = {
             'filterType': 'idField',
-            'filterValues': marketo_snap_id,
+            'filterValues': marketoGUID,
             'fields': ('emailAddress,snapName,revision,Confinement,channel,'
                        'marketoGUID,createdAt,updatedAt'),
         }
         url = self._prepare_url(
             '/rest/v1/customobjects/snap_c.json', **extra_params)
         return requests.get(url).json()
+
+    def describe_snap(self):
+        return self.describe_object('snap_c')
 
 
 DEFAULT_CONFIG = b"""# Marketo-monkey configuration
@@ -111,6 +121,9 @@ def main():
     parser.add_argument('--edit-config', action='store_true',
                         help='Edit configuration')
 
+    parser.add_argument('obj_name', choices=['lead', 'snap'])
+    parser.add_argument('spec', nargs='?', metavar='field=value,field=value')
+
     args = parser.parse_args()
 
     if args.debug:
@@ -131,40 +144,84 @@ def main():
         try:
             editor.edit(**kwargs)
         except PermissionError:
-            print('Could not access the configuration file ...')
-            print('Please edit {} manually'.format(config_path))
-            return
+            print(('\033[31m\033[1m'
+                   'Could not access the configuration file ...\n'
+                   'Please edit {} manually.'
+                   '\033[0m').format(config_path))
+            return 1
 
-    config = MarketoMonkey.config_from_yaml_file(config_path)
+    try:
+        config = MarketoMonkey.config_from_yaml_file(config_path)
+    except yaml.scanner.ScannerError:
+        print(('\033[31m\033[1m'
+               'Could not parse the configuration file ...\n'
+               'Ensure {} is a valid YAML.'
+               '\033[0m').format(config_path))
+        return 1
 
     mm = MarketoMonkey(config)
 
-    #pprint.pprint(mm.list_objects())
-    pprint.pprint(mm.describe_object('snap_c'))
+    if args.spec is None:
+        if args.obj_name == 'lead':
+            available_fields = [
+                'firstName', 'lastName', 'email', 'company',
+            ]
+            displayname = 'Lead'
+        else:
+            r = mm.describe_snap()
+            available_fields = [
+                f['name'] for f in r['result'][0]['fields']
+                if not f['crmManaged']]
+            displayname = r['result'][0]['displayName']
+        print('{!r} object available fields:\n\t{}'.format(
+            displayname, ', '.join(available_fields)))
+        return
 
-    #lead = {
-    #    'firstName': 'Foo',
-    #    'lastName': 'Bar',
-    #    'email': 'foo.bar@example.com',
-    #    'company': '',
-    #}
-    #r = mm.create_lead(**lead)
-    #pprint.pprint(r)
-    #lead_id = r['result'][0]['id']
-    #pprint.pprint(mm.get_lead(lead_id))
-    #snap = {
-    #    'emailAddress': 'foo.bar@example.com',
-    #    'snapName': 'testing-snap',
-    #    'revision': '10',
-    #    'Confinement': 'devmode',
-    #    'channel': '6.6.6/edge/radioactive',
-    #}
-    #r = mm.create_or_update_snap(**snap)
-    #pprint.pprint(r)
-    #marketoGUID = r['result'][0]['marketoGUID']
-    #pprint.pprint(mm.get_snap(marketoGUID))
 
+    spec = {}
+    for expr in args.spec.split(','):
+        if not expr or '=' not in expr:
+            continue
+        field, value = expr.split('=')
+        spec[field] = value
+
+    if args.obj_name == 'lead':
+        updated = mm.set_lead(**spec)
+        try:
+            lead_id = updated['result'][0]['id']
+        except KeyError:
+            print('\033[31m\033[1m'
+                  'Failed to create or modify lead!'
+                  '\033[0m')
+            for r in updated['result'][0]['reasons']:
+                print('\t{}'.format(r['message']))
+            return 1
+
+        print('\033[32m'
+              'Lead object {}!'
+              '\033[0m'.format(updated['result'][0]['status']))
+        fetched = mm.get_lead(lead_id)
+        lead = fetched['result'][0]
+        pprint.pprint(lead)
+    else:
+        updated = mm.set_snap(**spec)
+        try:
+            marketoGUID = updated['result'][0]['marketoGUID']
+        except KeyError:
+            print('\033[31m\033[1m'
+                  'Failed to create or modify snap!'
+                  '\033[0m')
+            for r in updated['result'][0]['reasons']:
+                print('\t{}'.format(r['message']))
+            return 1
+
+        print('\033[32m'
+              'Snap object {}!'
+              '\033[0m'.format(updated['result'][0]['status']))
+        fetched = mm.get_snap(marketoGUID)
+        snap = fetched['result'][0]
+        pprint.pprint(snap)
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())
