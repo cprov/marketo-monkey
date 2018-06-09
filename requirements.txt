@@ -1,3 +1,5 @@
 python-editor
 PyYAML
 requests
+termcolor
+colorama

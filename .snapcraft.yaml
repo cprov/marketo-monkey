@@ -19,5 +19,7 @@ parts:
       - python-editor
       - PyYAML
       - requests
+      - termcolor
+      - colorama
     prime:
       - -install

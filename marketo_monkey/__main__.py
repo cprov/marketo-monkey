@@ -9,6 +9,10 @@ import editor
 import requests
 import yaml
 
+from colorama import init
+from termcolor import colored
+
+
 from marketo_monkey import MarketoMonkey
 
 
@@ -49,7 +53,7 @@ def main():
         # from http.client import HTTPConnection
         # HTTPConnection.debuglevel = 1
         handler = requests.packages.urllib3.add_stderr_logger()
-        handler.setFormatter(logging.Formatter('\033[1m%(message)s\033[0m'))
+        handler.setFormatter(logging.Formatter(colored('%(message)s', 'yellow')))
 
     config_dir = os.path.abspath(os.environ.get('SNAP_USER_COMMON', '.'))
     config_path = os.path.join(config_dir, 'marketo-monkey.yaml')
@@ -62,19 +66,19 @@ def main():
         try:
             editor.edit(**kwargs)
         except PermissionError:
-            print(('\033[31m\033[1m'
-                   'Could not access the configuration file ...\n'
-                   'Please edit {} manually.'
-                   '\033[0m').format(config_path))
+            msg = (
+                'Could not access the configuration file ...\n'
+                'Please edit {} manually.').format(config_path)
+            print(colored(msg, 'red'))
             return 1
 
     try:
         config = MarketoMonkey.config_from_yaml_file(config_path)
     except yaml.scanner.ScannerError:
-        print(('\033[31m\033[1m'
-               'Could not parse the configuration file ...\n'
-               'Ensure {} is a valid YAML.'
-               '\033[0m').format(config_path))
+        msg = (
+            'Could not parse the configuration file ...\n'
+            'Ensure {} is a valid YAML.').format(config_path)
+        print(colored(msg, 'red'))
         return 1
 
     mm = MarketoMonkey(config)
@@ -91,8 +95,9 @@ def main():
                 f['name'] for f in r['result'][0]['fields']
                 if not f['crmManaged']]
             displayname = r['result'][0]['displayName']
-        print('{!r} object available fields:\n\t{}'.format(
-            displayname, ', '.join(available_fields)))
+        msg = '{!r} object available fields:\n\t{}'.format(
+            displayname, ', '.join(available_fields))
+        print(colored(msg, 'green'))
         return
 
     spec = {}
@@ -107,16 +112,14 @@ def main():
         try:
             lead_id = updated['result'][0]['id']
         except KeyError:
-            print('\033[31m\033[1m'
-                  'Failed to create or modify lead!'
-                  '\033[0m')
+            msg = 'Failed to create or modify lead!'
+            print(colored(msg, 'red'))
             for r in updated['result'][0]['reasons']:
-                print('\t{}'.format(r['message']))
+                print(colored('\t{}'.format(r['message']), 'red'))
             return 1
 
-        print('\033[32m'
-              'Lead object {}!'
-              '\033[0m'.format(updated['result'][0]['status']))
+        msg = 'Lead object {}!'.format(updated['result'][0]['status'])
+        print(colored(msg, 'green'))
         fetched = mm.get_lead(lead_id)
         lead = fetched['result'][0]
         pprint.pprint(lead)
@@ -126,16 +129,14 @@ def main():
         try:
             marketo_guid = updated['result'][0]['marketoGUID']
         except KeyError:
-            print('\033[31m\033[1m'
-                  'Failed to create or modify snap!'
-                  '\033[0m')
+            msg = 'Failed to create or modify snap!'
+            print(colored(msg, 'red'))
             for r in updated['result'][0]['reasons']:
-                print('\t{}'.format(r['message']))
+                print(colored('\t{}'.format(r['message']), 'red'))
             return 1
 
-        print('\033[32m'
-              'Snap object {}!'
-              '\033[0m'.format(updated['result'][0]['status']))
+        msg = 'Snap object {}!'.format(updated['result'][0]['status'])
+        print(colored(msg, 'green'))
         fetched = mm.get_snap(marketo_guid)
         snap = fetched['result'][0]
         pprint.pprint(snap)

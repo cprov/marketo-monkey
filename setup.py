@@ -26,6 +26,8 @@ setuptools.setup(
         "python-editor",
         "PyYAML",
         "requests",
+        "termcolor",
+        "colorama",
     ],
     test_suite='tests',
     setup_requires=[
