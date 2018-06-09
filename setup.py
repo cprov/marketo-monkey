@@ -9,7 +9,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name='marketo-monkey',
-    version='0.2',
+    version='0.3',
     author='Celso Providelo',
     author_email='celso.providelo@canonical.com',
     url="https://github.com/cprov/marketo-monkey",
@@ -28,6 +28,9 @@ setuptools.setup(
         "requests",
     ],
     test_suite='tests',
+    setup_requires=[
+        "flake8"
+    ],
     scripts=['marketo-monkey.py'],
     packages=setuptools.find_packages(),
 )

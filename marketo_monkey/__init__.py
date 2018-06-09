@@ -59,10 +59,7 @@ class MarketoMonkey():
 
     def set_lead(self, **kwargs):
         lead = kwargs.copy()
-        overrides = {
-            'snapcraftio': True,
-            'snapcraftioEnvironment': 'staging',
-        }
+        overrides = self._config.get('leads', {}).get('overrides', {})
         lead.update(overrides)
         url = self._prepare_url('/rest/v1/leads.json')
         payload = {'input': [lead]}
@@ -82,13 +79,17 @@ class MarketoMonkey():
         payload = {'input': [snap]}
         return requests.post(url, json=payload, headers=self.HEADERS).json()
 
-    def get_snap(self, marketoGUID):
+    def get_snap(self, marketo_guid, fields=None):
         extra_params = {
             'filterType': 'idField',
-            'filterValues': marketoGUID,
-            'fields': ('emailAddress,snapName,revision,Confinement,channel,'
-                       'marketoGUID,createdAt,updatedAt'),
+            'filterValues': marketo_guid,
         }
+        if fields is None:
+            r = self.describe_snap()
+            fields = [f['name'] for f in r['result'][0]['fields']]
+            if fields:
+                extra_params['fields'] = ','.join(fields)
+
         url = self._prepare_url(
             '/rest/v1/customobjects/snap_c.json', **extra_params)
         return requests.get(url).json()

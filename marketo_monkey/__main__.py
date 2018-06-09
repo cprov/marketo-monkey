@@ -18,6 +18,11 @@ service_root: https://<xxx-XXX-xxx>.mktorest.com
 client_id: <CLIENT-ID>
 client_secret: <CLIENT-SECRET>
 
+lead:
+  overrides:
+    - snapcraftio: true
+    - snapcraftioEnvironment: staging
+
 """
 
 
@@ -27,7 +32,8 @@ def main():
     )
     parser.add_argument(
         '--version', action='version',
-        version='marketo-monkey "{}"'.format(os.environ.get('SNAP_VERSION', 'devel')))
+        version='marketo-monkey "{}"'.format(
+            os.environ.get('SNAP_VERSION', 'devel')))
     parser.add_argument('-v', '--debug', action='store_true',
                         help='Prints request and response headers')
     parser.add_argument('--edit-config', action='store_true',
@@ -40,8 +46,8 @@ def main():
 
     if args.debug:
         # The http.client logger pollutes stdout.
-        #from http.client import HTTPConnection
-        #HTTPConnection.debuglevel = 1
+        # from http.client import HTTPConnection
+        # HTTPConnection.debuglevel = 1
         handler = requests.packages.urllib3.add_stderr_logger()
         handler.setFormatter(logging.Formatter('\033[1m%(message)s\033[0m'))
 
@@ -89,7 +95,6 @@ def main():
             displayname, ', '.join(available_fields)))
         return
 
-
     spec = {}
     for expr in args.spec.split(','):
         if not expr or '=' not in expr:
@@ -115,10 +120,11 @@ def main():
         fetched = mm.get_lead(lead_id)
         lead = fetched['result'][0]
         pprint.pprint(lead)
-    else:
+
+    elif args.obj_name == 'snap':
         updated = mm.set_snap(**spec)
         try:
-            marketoGUID = updated['result'][0]['marketoGUID']
+            marketo_guid = updated['result'][0]['marketoGUID']
         except KeyError:
             print('\033[31m\033[1m'
                   'Failed to create or modify snap!'
@@ -130,7 +136,7 @@ def main():
         print('\033[32m'
               'Snap object {}!'
               '\033[0m'.format(updated['result'][0]['status']))
-        fetched = mm.get_snap(marketoGUID)
+        fetched = mm.get_snap(marketo_guid)
         snap = fetched['result'][0]
         pprint.pprint(snap)
 
