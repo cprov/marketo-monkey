@@ -66,7 +66,18 @@ class MarketoMonkey():
         return requests.post(url, json=payload, headers=self.HEADERS).json()
 
     def get_lead(self, lead_id):
-        url = self._prepare_url('/rest/v1/lead/{}.json'.format(lead_id))
+        r = self.describe_lead()
+        fields = [
+            f['rest']['name'] for f in r['result']
+            if 'snap' in f['rest']['name'].lower()]
+        fields += [
+            'firstName', 'lastName', 'email', 'userDisplayName',
+        ]
+        extra_params = {
+            'fields': ','.join(fields),
+        }
+        url = self._prepare_url(
+            '/rest/v1/lead/{}.json'.format(lead_id), **extra_params)
         return requests.get(url).json()
 
     def describe_lead(self):
@@ -79,17 +90,14 @@ class MarketoMonkey():
         payload = {'input': [snap]}
         return requests.post(url, json=payload, headers=self.HEADERS).json()
 
-    def get_snap(self, marketo_guid, fields=None):
+    def get_snap(self, marketo_guid):
+        r = self.describe_snap()
+        fields = [f['name'] for f in r['result'][0]['fields']]
         extra_params = {
             'filterType': 'idField',
             'filterValues': marketo_guid,
+            'fields': ','.join(fields)
         }
-        if fields is None:
-            r = self.describe_snap()
-            fields = [f['name'] for f in r['result'][0]['fields']]
-            if fields:
-                extra_params['fields'] = ','.join(fields)
-
         url = self._prepare_url(
             '/rest/v1/customobjects/snap_c.json', **extra_params)
         return requests.get(url).json()

@@ -43,17 +43,20 @@ def main():
     parser.add_argument('--edit-config', action='store_true',
                         help='Edit configuration')
 
-    parser.add_argument('obj_name', choices=['lead', 'snap'])
+    parser.add_argument('obj_name', nargs='?', choices=['lead', 'snap'])
     parser.add_argument('spec', nargs='?', metavar='field=value,field=value')
 
     args = parser.parse_args()
+
+    init()
 
     if args.debug:
         # The http.client logger pollutes stdout.
         # from http.client import HTTPConnection
         # HTTPConnection.debuglevel = 1
         handler = requests.packages.urllib3.add_stderr_logger()
-        handler.setFormatter(logging.Formatter(colored('%(message)s', 'yellow')))
+        handler.setFormatter(
+            logging.Formatter(colored('%(message)s', 'yellow')))
 
     config_dir = os.path.abspath(os.environ.get('SNAP_USER_COMMON', '.'))
     config_path = os.path.join(config_dir, 'marketo-monkey.yaml')
@@ -83,10 +86,22 @@ def main():
 
     mm = MarketoMonkey(config)
 
+    if args.obj_name is None:
+        return
+
     if args.spec is None:
         if args.obj_name == 'lead':
+            r = mm.describe_lead()
+            # all leads fields with 'snap' in their name and
+            # a fixed set of keys.
             available_fields = [
-                'firstName', 'lastName', 'email', 'company',
+                f['rest']['name'] for f in r['result']
+                if 'snap' in f['rest']['name'].lower()]
+            available_fields += [
+                'firstName',
+                'lastName',
+                'email',
+                'userDisplayName',
             ]
             displayname = 'Lead'
         else:
@@ -96,7 +111,7 @@ def main():
                 if not f['crmManaged']]
             displayname = r['result'][0]['displayName']
         msg = '{!r} object available fields:\n\t{}'.format(
-            displayname, ', '.join(available_fields))
+            displayname, ', '.join(sorted(available_fields)))
         print(colored(msg, 'green'))
         return
 
@@ -131,8 +146,12 @@ def main():
         except KeyError:
             msg = 'Failed to create or modify snap!'
             print(colored(msg, 'red'))
-            for r in updated['result'][0]['reasons']:
-                print(colored('\t{}'.format(r['message']), 'red'))
+            if updated['success']:
+                errors = updated['result'][0]['reasons']
+            else:
+                errors = updated['errors']
+            for e in errors:
+                print(colored('\t{}'.format(e['message']), 'red'))
             return 1
 
         msg = 'Snap object {}!'.format(updated['result'][0]['status'])
