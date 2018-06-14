@@ -13,7 +13,10 @@ from colorama import init
 from termcolor import colored
 
 
-from marketo_monkey import MarketoMonkey
+from marketo_monkey import (
+    MarketoMonkey,
+    MarketoMonkeyError,
+)
 
 
 DEFAULT_CONFIG = b"""# Marketo-monkey configuration
@@ -28,6 +31,16 @@ lead:
     - snapcraftioEnvironment: staging
 
 """
+
+
+def parse_spec(text):
+    spec = {}
+    for expr in text.split(','):
+        if not expr or '=' not in expr:
+            continue
+        field, value = expr.split('=')
+        spec[field] = value
+    return spec
 
 
 def main():
@@ -89,76 +102,54 @@ def main():
     if args.obj_name is None:
         return
 
-    if args.spec is None:
-        if args.obj_name == 'lead':
-            r = mm.describe_lead()
-            # all leads fields with 'snap' in their name and
-            # a fixed set of keys.
-            available_fields = [
-                f['rest']['name'] for f in r['result']
-                if 'snap' in f['rest']['name'].lower()]
-            available_fields += [
-                'firstName',
-                'lastName',
-                'email',
-                'userDisplayName',
-            ]
-            displayname = 'Lead'
-        else:
-            r = mm.describe_snap()
-            available_fields = [
-                f['name'] for f in r['result'][0]['fields']
-                if not f['crmManaged']]
-            displayname = r['result'][0]['displayName']
-        msg = '{!r} object available fields:\n\t{}'.format(
-            displayname, ', '.join(sorted(available_fields)))
-        print(colored(msg, 'green'))
-        return
+    try:
 
-    spec = {}
-    for expr in args.spec.split(','):
-        if not expr or '=' not in expr:
-            continue
-        field, value = expr.split('=')
-        spec[field] = value
-
-    if args.obj_name == 'lead':
-        updated = mm.set_lead(**spec)
-        try:
-            lead_id = updated['result'][0]['id']
-        except KeyError:
-            msg = 'Failed to create or modify lead!'
-            print(colored(msg, 'red'))
-            for r in updated['result'][0]['reasons']:
-                print(colored('\t{}'.format(r['message']), 'red'))
-            return 1
-
-        msg = 'Lead object {}!'.format(updated['result'][0]['status'])
-        print(colored(msg, 'green'))
-        fetched = mm.get_lead(lead_id)
-        lead = fetched['result'][0]
-        pprint.pprint(lead)
-
-    elif args.obj_name == 'snap':
-        updated = mm.set_snap(**spec)
-        try:
-            marketo_guid = updated['result'][0]['marketoGUID']
-        except KeyError:
-            msg = 'Failed to create or modify snap!'
-            print(colored(msg, 'red'))
-            if updated['success']:
-                errors = updated['result'][0]['reasons']
+        if args.spec is None:
+            if args.obj_name == 'lead':
+                info = mm.get_lead_info()
+            elif args.obj_name == 'snap':
+                info = mm.get_snap_info()
             else:
-                errors = updated['errors']
-            for e in errors:
-                print(colored('\t{}'.format(e['message']), 'red'))
+                # Should never run due to argparse choices.
+                msg = 'Unknown object name: {}'.format(args.obj_name)
+                print(colored(msg, 'red'))
+                return 1
+            fields = ', '.join(sorted(info['available_fields']))
+            msg = '{!r} object available fields:\n\t{}'.format(
+                info['displayname'], fields)
+            print(colored(msg, 'green'))
+            return
+
+        spec = parse_spec(args.spec)
+
+        if args.obj_name == 'lead':
+            updated = mm.set_lead(**spec)
+            lead_id = updated['result'][0]['id']
+            action = updated['result'][0]['status']
+            msg = 'Lead object {!r} {}!'.format(lead_id, action)
+            print(colored(msg, 'green'))
+            lead = mm.get_lead(lead_id)['result'][0]
+            pprint.pprint(lead)
+
+        elif args.obj_name == 'snap':
+            updated = mm.set_snap(**spec)
+            marketo_guid = updated['result'][0]['marketoGUID']
+            action = updated['result'][0]['status']
+            msg = 'Snap object {!r} {}!'.format(marketo_guid, action)
+            print(colored(msg, 'green'))
+            snap = mm.get_snap(marketo_guid)['result'][0]
+            pprint.pprint(snap)
+        else:
+            # Should never run due to argparse choices.
+            msg = 'Unknown object name: {}'.format(args.obj_name)
+            print(colored(msg, 'red'))
             return 1
 
-        msg = 'Snap object {}!'.format(updated['result'][0]['status'])
-        print(colored(msg, 'green'))
-        fetched = mm.get_snap(marketo_guid)
-        snap = fetched['result'][0]
-        pprint.pprint(snap)
+    except MarketoMonkeyError as err:
+        print(colored(err.message, 'red'))
+        for e in err.errors:
+            print(colored('\t{}'.format(e['message']), 'red'))
+        return 1
 
 
 if __name__ == '__main__':

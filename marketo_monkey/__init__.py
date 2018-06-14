@@ -7,7 +7,37 @@ import requests
 name = 'marketo_monkey'
 __all__ = [
     'MarketoMonkey',
+    'MarketoMonkeyError',
 ]
+
+
+class MarketoMonkeyError(Exception):
+
+    def __init__(self, message, errors):
+        super()
+        self.message = message
+        self.errors = errors
+
+    @classmethod
+    def from_response(cls, response, message):
+        if response.status_code != requests.codes.ok:
+            error = {
+                'code': 'http-{}'.format(response.status_code),
+                'message': response.text
+            }
+            raise cls('Marketo request failed.', [error])
+
+        payload = response.json()
+
+        if not payload['success']:
+            raise cls(message, payload['errors'])
+
+        if response.request.method != 'GET':
+            status = payload['result'][0]['status']
+            if status not in ('created', 'updated'):
+                raise cls(message, payload['result'][0]['reasons'])
+
+        return payload
 
 
 class MarketoMonkey():
@@ -52,55 +82,75 @@ class MarketoMonkey():
         url = self._prepare_url('/rest/v1/customobjects.json')
         return requests.get(url).json()
 
-    def describe_object(self, name):
-        url = self._prepare_url(
-            '/rest/v1/customobjects/{}/describe.json'.format(name))
-        return requests.get(url).json()
-
     def set_lead(self, **kwargs):
         lead = kwargs.copy()
         overrides = self._config.get('leads', {}).get('overrides', {})
         lead.update(overrides)
         url = self._prepare_url('/rest/v1/leads.json')
         payload = {'input': [lead]}
-        return requests.post(url, json=payload, headers=self.HEADERS).json()
+        r = requests.post(url, json=payload, headers=self.HEADERS)
+        return MarketoMonkeyError.from_response(r, 'Failed to set lead')
 
     def get_lead(self, lead_id):
-        r = self.describe_lead()
-        fields = [
-            f['rest']['name'] for f in r['result']
-            if 'snap' in f['rest']['name'].lower()]
-        fields += [
-            'firstName', 'lastName', 'email', 'userDisplayName',
-        ]
+        info = self.get_lead_info()
         extra_params = {
-            'fields': ','.join(fields),
+            'fields': ','.join(info['available_fields']),
         }
         url = self._prepare_url(
             '/rest/v1/lead/{}.json'.format(lead_id), **extra_params)
-        return requests.get(url).json()
+        r = requests.get(url)
+        return MarketoMonkeyError.from_response(r, 'Failed to get lead')
 
     def describe_lead(self):
         url = self._prepare_url('/rest/v1/leads/describe.json')
-        return requests.get(url).json()
+        r = requests.get(url)
+        return MarketoMonkeyError.from_response(r, 'Failed to describe lead')
+
+    def get_lead_info(self):
+        r = self.describe_lead()
+        # all leads fields with 'snap' in their name and
+        # a fixed set of keys.
+        available_fields = [
+            f['rest']['name'] for f in r['result']
+            if 'snap' in f['rest']['name'].lower()]
+        available_fields += [
+            'firstName', 'lastName', 'email', 'userDisplayName',
+        ]
+        return {
+            'displayname': 'Lead',
+            'available_fields': available_fields,
+        }
 
     def set_snap(self, **kwargs):
         snap = kwargs.copy()
         url = self._prepare_url('/rest/v1/customobjects/snap_c.json')
         payload = {'input': [snap]}
-        return requests.post(url, json=payload, headers=self.HEADERS).json()
+        r = requests.post(url, json=payload, headers=self.HEADERS)
+        return MarketoMonkeyError.from_response(r, 'Failed to set snap')
 
     def get_snap(self, marketo_guid):
-        r = self.describe_snap()
-        fields = [f['name'] for f in r['result'][0]['fields']]
+        info = self.get_snap_info(include_read_only_fields=True)
         extra_params = {
             'filterType': 'idField',
             'filterValues': marketo_guid,
-            'fields': ','.join(fields)
+            'fields': ','.join(info['available_fields'])
         }
         url = self._prepare_url(
             '/rest/v1/customobjects/snap_c.json', **extra_params)
-        return requests.get(url).json()
+        r = requests.get(url)
+        return MarketoMonkeyError.from_response(r, 'Failed to get snap')
 
     def describe_snap(self):
-        return self.describe_object('snap_c')
+        url = self._prepare_url(
+            '/rest/v1/customobjects/snap_c/describe.json')
+        r = requests.get(url)
+        return MarketoMonkeyError.from_response(r, 'Failed to describe snap')
+
+    def get_snap_info(self, include_read_only_fields=False):
+        r = self.describe_snap()
+        return {
+            'displayname': r['result'][0]['displayName'],
+            'available_fields': [
+                f['name'] for f in r['result'][0]['fields']
+                if include_read_only_fields or f['updateable']],
+            }
