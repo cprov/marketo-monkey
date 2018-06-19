@@ -27,8 +27,8 @@ client_secret: <CLIENT-SECRET>
 
 lead:
   overrides:
-    - snapcraftio: true
-    - snapcraftioEnvironment: staging
+    snapcraftio: true
+    snapcraftioEnvironment: staging
 
 """
 

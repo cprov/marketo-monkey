@@ -84,7 +84,7 @@ class MarketoMonkey():
 
     def set_lead(self, **kwargs):
         lead = kwargs.copy()
-        overrides = self._config.get('leads', {}).get('overrides', {})
+        overrides = self._config.get('lead', {}).get('overrides', {})
         lead.update(overrides)
         url = self._prepare_url('/rest/v1/leads.json')
         payload = {'input': [lead]}
