@@ -20,37 +20,79 @@ Use `snap`:
 ## Usage
 
 ```
-$ marketo-monkey lead
+$ marketo-monkey.py set_lead
 'Lead' object available fields:
-    firstName, lastName, email, company
+    email, firstName, hasSnapInEdge, hasSnapInStable, hasSnapRevision, hasStrictSnap, lastName, snapInEdgeDate, snapInStableDate, snapNameEdge, snapNameRegisteredDate, snapNameStable, snapNameUploaded, snapRevisionUploadedDate, snapStoreAccountID, snapStoreID, snapcraft, snapcraftio, snapcraftioEnvironment, snapname, userDisplayName
 
-$ marketo-monkey lead email=foo.bar@example.com
-Lead object updated!
-{'createdAt': '2018-06-08T12:19:00Z',
- 'email': 'foo.bar@example.com',
+$ marketo-monkey.py set_lead email=foo.bar@example.com
+Lead object 33374563 updated!
+{'email': 'foo.bar@example.com',
  'firstName': 'Foo',
+ 'hasSnapInEdge': False,
+ 'hasSnapInStable': False,
+ 'hasSnapRevision': False,
+ 'hasStrictSnap': False,
  'id': 33374563,
  'lastName': 'Bar',
- 'updatedAt': '2018-06-08T17:57:07Z'}
+ 'snapInEdgeDate': None,
+ 'snapInStableDate': None,
+ 'snapNameEdge': None,
+ 'snapNameRegisteredDate': None,
+ 'snapNameStable': None,
+ 'snapNameUploaded': None,
+ 'snapRevisionUploadedDate': None,
+ 'snapStoreAccountID': '1964',
+ 'snapStoreID': '1234',
+ 'snapcraft': False,
+ 'snapcraftio': True,
+ 'snapcraftioEnvironment': 'staging',
+ 'snapname': None,
+ 'userDisplayName': None}
 
-$ marketo-monkey snap
+$ marketo-monkey set_snap
 'Snap' object available fields:
-    createdAt, marketoGUID, updatedAt, Confinement, channel, emailAddress, revision, snapName
+    channel, confinement, revision, snapName, snapStoreAccountID
 
-$ marketo-monkey snap emailAddress=foo.bar@example.com,snapNamexx=testing-snap5
+$ marketo-monkey set_snap snapStoreAccountID=1234,snapNamexx=testing-snap5
 Failed to create or modify snap!
     Field 'snapNamexx' not found
     Value for requried field 'snapname' not specified
 
-$ marketo-monkey snap emailAddress=foo.bar@example.com,snapName=testing-snap5
-Snap object created!
-{'Confinement': None,
- 'channel': None,
- 'createdAt': '2018-06-08T18:34:21Z',
- 'emailAddress': 'foo.bar@example.com',
- 'marketoGUID': 'e1361ee9-7f9e-4a2c-acb4-b7e988ac8c55',
+$ marketo-monkey set_snap set_snap snapStoreAccountID=1964,snapName=testing-snap5
+Snap object '44f7bc36-71a3-4ed1-9197-a727911dfa8f' created!
+{'channel': None,
+ 'confinement': None,
+ 'createdAt': '2018-06-21T00:59:50Z',
+ 'marketoGUID': '44f7bc36-71a3-4ed1-9197-a727911dfa8f',
  'revision': None,
  'seq': 0,
  'snapName': 'testing-snap5',
- 'updatedAt': '2018-06-08T18:34:21Z'}
+ 'snapStoreAccountID': '1964',
+ 'updatedAt': '2018-06-21T00:59:50Z'}
+
+$ marketo-monkey.py get_snaps
+'Snap' object searchable fields:
+    marketoGUID, snapName, snapStoreAccountID
+
+$ marketo-monkey.py get_snaps snapStoreAccountID=1964
+...
+{'channel': 'edge',
+ 'confinement': 'devmode',
+ 'createdAt': '2018-06-20T19:07:44Z',
+ 'marketoGUID': '671257db-1462-4b48-84f3-3d57d91fe396',
+ 'revision': '101',
+ 'seq': 2,
+ 'snapName': 'test-snap',
+ 'snapStoreAccountID': '1964',
+ 'updatedAt': '2018-06-21T00:02:25Z'}
+{'channel': None,
+ 'confinement': None,
+ 'createdAt': '2018-06-21T00:59:50Z',
+ 'marketoGUID': '44f7bc36-71a3-4ed1-9197-a727911dfa8f',
+ 'revision': None,
+ 'seq': 3,
+ 'snapName': 'testing-snap5',
+ 'snapStoreAccountID': '1964',
+ 'updatedAt': '2018-06-21T00:59:50Z'}
+
 ```

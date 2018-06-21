@@ -56,7 +56,10 @@ def main():
     parser.add_argument('--edit-config', action='store_true',
                         help='Edit configuration')
 
-    parser.add_argument('obj_name', nargs='?', choices=['lead', 'snap'])
+    parser.add_argument('action', nargs='?', choices=[
+        'lead', 'set_lead', 'snap', 'set_snap',
+        'get_snaps', 'delete_snap',
+    ])
     parser.add_argument('spec', nargs='?', metavar='field=value,field=value')
 
     args = parser.parse_args()
@@ -99,30 +102,49 @@ def main():
 
     mm = MarketoMonkey(config)
 
-    if args.obj_name is None:
+    if args.action is None:
         return
 
     try:
-
         if args.spec is None:
-            if args.obj_name == 'lead':
+            if args.action in ('lead', 'set_lead'):
                 info = mm.get_lead_info()
-            elif args.obj_name == 'snap':
+                fields = ', '.join(sorted(info['available_fields']))
+                msg = '{!r} object available fields:\n\t{}'.format(
+                    info['displayname'], fields)
+                print(colored(msg, 'green'))
+
+            elif args.action in ('snap', 'set_snap'):
                 info = mm.get_snap_info()
+                fields = ', '.join(sorted(info['available_fields']))
+                msg = '{!r} object available fields:\n\t{}'.format(
+                    info['displayname'], fields)
+                print(colored(msg, 'green'))
+
+            elif args.action == 'get_snaps':
+                info = mm.get_snap_info()
+                fields = ', '.join(sorted(info['searchable_fields']))
+                msg = '{!r} object searchable fields:\n\t{}'.format(
+                    info['displayname'], fields)
+                print(colored(msg, 'green'))
+
+            elif args.action == 'delete_snap':
+                supported_filters = ('snapName',)
+                fields = ', '.join(supported_filters)
+                msg = '\'Snap\' object deleting fields:\n\t{}'.format(fields)
+                print(colored(msg, 'green'))
+
             else:
                 # Should never run due to argparse choices.
-                msg = 'Unknown object name: {}'.format(args.obj_name)
+                msg = 'Unknown action: {}'.format(args.action)
                 print(colored(msg, 'red'))
                 return 1
-            fields = ', '.join(sorted(info['available_fields']))
-            msg = '{!r} object available fields:\n\t{}'.format(
-                info['displayname'], fields)
-            print(colored(msg, 'green'))
-            return
+
+            return 1
 
         spec = parse_spec(args.spec)
 
-        if args.obj_name == 'lead':
+        if args.action in ('lead', 'set_lead'):
             updated = mm.set_lead(**spec)
             lead_id = updated['result'][0]['id']
             action = updated['result'][0]['status']
@@ -131,7 +153,7 @@ def main():
             lead = mm.get_lead(lead_id)['result'][0]
             pprint.pprint(lead)
 
-        elif args.obj_name == 'snap':
+        elif args.action in ('snap', 'set_snap'):
             updated = mm.set_snap(**spec)
             marketo_guid = updated['result'][0]['marketoGUID']
             action = updated['result'][0]['status']
@@ -139,9 +161,20 @@ def main():
             print(colored(msg, 'green'))
             snap = mm.get_snap(marketo_guid)['result'][0]
             pprint.pprint(snap)
+
+        elif args.action == 'get_snaps':
+            found = mm.get_snaps(**spec)
+            for snap in found['result']:
+                pprint.pprint(snap)
+
+        elif args.action == 'delete_snap':
+            deleted = mm.delete_snap(**spec)
+            for snap in deleted['result']:
+                pprint.pprint(snap)
+
         else:
             # Should never run due to argparse choices.
-            msg = 'Unknown object name: {}'.format(args.obj_name)
+            msg = 'Unknown action: {}'.format(args.action)
             print(colored(msg, 'red'))
             return 1
 
