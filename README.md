@@ -58,7 +58,7 @@ Failed to create or modify snap!
     Field 'snapNamexx' not found
     Value for requried field 'snapname' not specified
 
-$ marketo-monkey set_snap set_snap snapStoreAccountID=1964,snapName=testing-snap5
+$ marketo-monkey set_snap snapStoreAccountID=1964,snapName=testing-snap5
 Snap object '44f7bc36-71a3-4ed1-9197-a727911dfa8f' created!
 {'channel': None,
  'confinement': None,
@@ -70,7 +70,7 @@ Snap object '44f7bc36-71a3-4ed1-9197-a727911dfa8f' created!
  'snapStoreAccountID': '1964',
  'updatedAt': '2018-06-21T00:59:50Z'}
 
-$ marketo-monkey.py get_snaps
+$ marketo-monkey get_snaps
 'Snap' object searchable fields:
     marketoGUID, snapName, snapStoreAccountID
 
@@ -94,5 +94,28 @@ $ marketo-monkey.py get_snaps snapStoreAccountID=1964
  'snapName': 'testing-snap5',
  'snapStoreAccountID': '1964',
  'updatedAt': '2018-06-21T00:59:50Z'}
+
+$ marketo-monkey.py set_repo snapStoreAccountID=1980,snapName=foo-baz,reponame=/foo/baz
+...
+{'createdAt': '2018-07-11T18:17:50Z',
+ 'firstSuccessfulBuild': False,
+ 'marketoGUID': '6f0653b6-1ff3-4b70-a700-b4c9ceb047ab',
+ 'repoName': '/foo/baz',
+ 'seq': 0,
+ 'snapName': 'foo-baz',
+ 'snapStoreAccountID': '1980',
+ 'updatedAt': '2018-07-11T18:17:50Z'}
+
+$ marketo-monkey get_repos snapStoreAccountID=1980
+...
+{'createdAt': '2018-07-11T18:17:50Z',
+ 'firstSuccessfulBuild': False,
+ 'marketoGUID': '6f0653b6-1ff3-4b70-a700-b4c9ceb047ab',
+ 'repoName': '/foo/baz',
+ 'seq': 2,
+ 'snapName': 'foo-baz',
+ 'snapStoreAccountID': '1980',
+ 'updatedAt': '2018-07-11T18:17:50Z'}
+
 
 ```
