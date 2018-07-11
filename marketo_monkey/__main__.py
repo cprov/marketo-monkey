@@ -57,8 +57,9 @@ def main():
                         help='Edit configuration')
 
     parser.add_argument('action', nargs='?', choices=[
-        'lead', 'set_lead', 'snap', 'set_snap',
-        'get_snaps', 'delete_snap',
+        'lead', 'set_lead',
+        'snap', 'set_snap', 'get_snaps', 'delete_snap',
+        'set_repo', 'get_repos',
     ])
     parser.add_argument('spec', nargs='?', metavar='field=value,field=value')
 
@@ -171,6 +172,20 @@ def main():
             deleted = mm.delete_snap(**spec)
             for snap in deleted['result']:
                 pprint.pprint(snap)
+
+        elif args.action == 'set_repo':
+            updated = mm.set_repo(**spec)
+            marketo_guid = updated['result'][0]['marketoGUID']
+            action = updated['result'][0]['status']
+            msg = 'Repo object {!r} {}!'.format(marketo_guid, action)
+            print(colored(msg, 'green'))
+            repo = mm.get_repo(marketo_guid)['result'][0]
+            pprint.pprint(repo)
+
+        elif args.action == 'get_repos':
+            found = mm.get_repos(**spec)
+            for repo in found['result']:
+                pprint.pprint(repo)
 
         else:
             # Should never run due to argparse choices.

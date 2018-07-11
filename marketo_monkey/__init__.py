@@ -222,3 +222,73 @@ class MarketoMonkey():
         url = self._prepare_url('/rest/v1/customobjects/snap_c/delete.json')
         r = requests.post(url, json=payload, headers=self.HEADERS)
         return MarketoMonkeyError.from_response(r, 'Failed to delete snaps')
+
+    def set_repo(self, **kwargs):
+        repo = kwargs.copy()
+        url = self._prepare_url('/rest/v1/customobjects/gitHubRepos_c.json')
+        payload = {'input': [repo]}
+        r = requests.post(url, json=payload, headers=self.HEADERS)
+        return MarketoMonkeyError.from_response(r, 'Failed to set repo')
+
+    def get_repo(self, marketo_guid):
+        info = self.get_repo_info(include_read_only_fields=True)
+        extra_params = {
+            'filterType': 'idField',
+            'filterValues': marketo_guid,
+            'fields': ','.join(info['available_fields'])
+        }
+        url = self._prepare_url(
+            '/rest/v1/customobjects/gitHubRepos_c.json', **extra_params)
+        r = requests.get(url)
+        return MarketoMonkeyError.from_response(r, 'Failed to get repo')
+
+    def describe_repo(self):
+        url = self._prepare_url(
+            '/rest/v1/customobjects/gitHubRepos_c/describe.json')
+        r = requests.get(url)
+        return MarketoMonkeyError.from_response(r, 'Failed to describe repo')
+
+    def get_repo_info(self, include_read_only_fields=False):
+        r = self.describe_repo()
+        return {
+            'displayname': r['result'][0]['displayName'],
+            'available_fields': [
+                f['name'] for f in r['result'][0]['fields']
+                if include_read_only_fields or f['updateable']],
+            'searchable_fields': [
+                s[0] for s in r['result'][0]['searchableFields']],
+            }
+
+    def get_repos(self, **kwargs):
+        info = self.get_repo_info(include_read_only_fields=True)
+        if len(kwargs) != 1:
+            errors = [
+                {'code': 'unsupported-filter',
+                 'message': 'Only one filter is supported, {} given'.format(
+                     len(kwargs.keys()))},
+                {'code': 'supported-filters',
+                 'message': 'Supported filters: {}'.format(
+                     ' | '.join(info['searchable_fields']))},
+            ]
+            raise MarketoMonkeyError('Failed to get repos', errors=errors)
+
+        k, v = kwargs.popitem()
+        if k not in info['searchable_fields']:
+            errors = [
+                {'code': 'unknown-filter',
+                 'message': 'Unknown filter: {!r}'.format(k)},
+                {'code': 'supported-filters',
+                 'message': 'Supported filters: {}'.format(
+                     ' | '.join(info['searchable_fields']))},
+            ]
+            raise MarketoMonkeyError('Failed to get repos', errors=errors)
+
+        extra_params = {
+            'filterType': k,
+            'filterValues': v,
+            'fields': ','.join(info['available_fields'])
+        }
+        url = self._prepare_url(
+            '/rest/v1/customobjects/gitHubRepos_c.json', **extra_params)
+        r = requests.get(url)
+        return MarketoMonkeyError.from_response(r, 'Failed to get repos')
