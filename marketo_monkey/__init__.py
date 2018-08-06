@@ -115,6 +115,7 @@ class MarketoMonkey():
             if 'snap' in f['rest']['name'].lower()]
         available_fields += [
             'firstName', 'lastName', 'email', 'userDisplayName',
+            'dashboardAccountCreatedDate'
         ]
         return {
             'displayname': 'Lead',
