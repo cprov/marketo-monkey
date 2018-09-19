@@ -9,7 +9,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name='marketo-monkey',
-    version='0.5',
+    version='0.61',
     author='Celso Providelo',
     author_email='celso.providelo@canonical.com',
     url="https://github.com/cprov/marketo-monkey",

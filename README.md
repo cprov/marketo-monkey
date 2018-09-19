@@ -53,12 +53,12 @@ $ marketo-monkey set_snap
 'Snap' object available fields:
     channel, confinement, revision, snapName, snapStoreAccountID
 
-$ marketo-monkey set_snap snapStoreAccountID=1234,snapNamexx=testing-snap5
+$ marketo-monkey set_snap snapStoreAccountID=1234 snapNamexx=testing-snap5
 Failed to create or modify snap!
     Field 'snapNamexx' not found
     Value for requried field 'snapname' not specified
 
-$ marketo-monkey set_snap snapStoreAccountID=1964,snapName=testing-snap5
+$ marketo-monkey set_snap snapStoreAccountID=1964 snapName=testing-snap5
 Snap object '44f7bc36-71a3-4ed1-9197-a727911dfa8f' created!
 {'channel': None,
  'confinement': None,
@@ -95,7 +95,7 @@ $ marketo-monkey.py get_snaps snapStoreAccountID=1964
  'snapStoreAccountID': '1964',
  'updatedAt': '2018-06-21T00:59:50Z'}
 
-$ marketo-monkey.py set_repo snapStoreAccountID=1980,snapName=foo-baz,reponame=/foo/baz
+$ marketo-monkey.py set_repo snapStoreAccountID=1980 snapName=foo-baz reponame=/foo/baz
 ...
 {'createdAt': '2018-07-11T18:17:50Z',
  'firstSuccessfulBuild': False,

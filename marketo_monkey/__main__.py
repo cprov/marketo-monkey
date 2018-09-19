@@ -33,9 +33,9 @@ lead:
 """
 
 
-def parse_spec(text):
+def parse_specs(specs):
     spec = {}
-    for expr in text.split(','):
+    for expr in specs:
         if not expr or '=' not in expr:
             continue
         field, value = expr.split('=')
@@ -61,7 +61,7 @@ def main():
         'snap', 'set_snap', 'get_snaps', 'delete_snap',
         'set_repo', 'get_repos',
     ])
-    parser.add_argument('spec', nargs='?', metavar='field=value,field=value')
+    parser.add_argument('specs', nargs='+', metavar='field=value')
 
     args = parser.parse_args()
 
@@ -107,7 +107,7 @@ def main():
         return
 
     try:
-        if args.spec is None:
+        if args.specs is None:
             if args.action in ('lead', 'set_lead'):
                 info = mm.get_lead_info()
                 fields = ', '.join(sorted(info['available_fields']))
@@ -143,7 +143,7 @@ def main():
 
             return 1
 
-        spec = parse_spec(args.spec)
+        spec = parse_specs(args.specs)
 
         if args.action in ('lead', 'set_lead'):
             updated = mm.set_lead(**spec)
