@@ -4,7 +4,9 @@ CLI tool to facilitate Marketo integration.
 
 ## Installing
 
-Use `snap`:
+[![Get it from the Snap Store](https://snapcraft.io/static/images/badges/en/snap-store-black.svg)](https://snapcraft.io/marketo-monkey)
+
+Or simply use the `snap` CLI:
 
     $ snap install marketo-monkey [--edge] [--classic]
 
